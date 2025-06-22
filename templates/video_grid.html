@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>YouTube Video Grid</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #000;
+            font-family: Arial, sans-serif;
+        }
+        .video-grid {
+            display: grid;
+            gap: 10px;
+            padding: 10px;
+        }
+        .grid-1 { grid-template-columns: 1fr; }
+        .grid-2 { grid-template-columns: 1fr 1fr; }
+        .grid-3 { grid-template-columns: repeat(2, 1fr); }
+        .grid-4 { grid-template-columns: repeat(2, 1fr); }
+        .grid-5, .grid-6 { grid-template-columns: repeat(3, 1fr); }
+        .grid-7, .grid-8, .grid-9 { grid-template-columns: repeat(3, 1fr); }
+        .grid-10, .grid-11, .grid-12 { grid-template-columns: repeat(4, 1fr); }
+        .grid-13, .grid-14, .grid-15, .grid-16 { grid-template-columns: repeat(4, 1fr); }
+        .grid-17, .grid-18, .grid-19, .grid-20, .grid-21, .grid-22, .grid-23, .grid-24, .grid-25 { grid-template-columns: repeat(5, 1fr); }
+        .grid-26, .grid-27, .grid-28, .grid-29, .grid-30, .grid-31, .grid-32, .grid-33, .grid-34, .grid-35, .grid-36 { grid-template-columns: repeat(6, 1fr); }
+        .grid-37, .grid-38, .grid-39, .grid-40, .grid-41, .grid-42, .grid-43, .grid-44, .grid-45, .grid-46, .grid-47, .grid-48, .grid-49 { grid-template-columns: repeat(7, 1fr); }
+        .grid-50, .grid-51, .grid-52, .grid-53, .grid-54, .grid-55, .grid-56, .grid-57, .grid-58, .grid-59, .grid-60, .grid-61, .grid-62, .grid-63, .grid-64 { grid-template-columns: repeat(8, 1fr); }
+        .grid-65, .grid-66, .grid-67, .grid-68, .gr
+        /* Add additional grid styles as needed */
+        .video-container {
+            position: relative;
+            background: #222;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid #333;
+        }
+    </style>
+</head>
+<body>
+    <a href="/" class="back-button">← Back to Home</a>
+    
+    <h1>🎬 YouTube Video Grid ({{ video_count }} Videos)</h1>
+    
+    <div class="video-grid grid-{{ video_count }}">
+        {% for i in range(video_count) %}
+        <div class="video-container">
+            <iframe 
+                src="https://www.youtube.com/embed/{{ video_id }}?autoplay=1&mute=1&loop=1&playlist={{ video_id }}&controls=1&start={{ i * 10 }}&vq=small"
+                allowfullscreen>
+            </iframe>
+        </div>
+        {% endfor %}
+    </div>
+</body>
+</html>

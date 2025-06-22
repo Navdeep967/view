@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>YouTube Video Grid</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #ff0000;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #cc0000;
+        }
+        label {
+            font-weight: bold;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>🚀 YouTube Video Grid Player</h2>
+        <form method="post">
+            <label>🎥 YouTube Video Link:</label><br>
+            <input type="text" name="youtube_url" required placeholder="https://www.youtube.com/watch?v=..."><br><br>
+            
+            <label>📺 Number of Videos:</label><br>
+            <input type="number" name="video_count" min="1" max="100" value="4"><br><br>
+
+            <label>⏳ Loop Duration (seconds):</label><br>
+            <input type="number" name="loop_duration" min="1" value="10"><br><br>
+
+            <button type="submit">Create Video Grid</button>
+        </form>
+    </div>
+</body>
+</html>
