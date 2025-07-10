@@ -1,2 +1,11 @@
+Flask
+Flask-SQLAlchemy
+Flask-Bcrypt
+Flask-Login
+Flask-WTF
+WTForms
+APScheduler
+python-telegram-bot
+Requests
 aiogram
-flask
+telebot
