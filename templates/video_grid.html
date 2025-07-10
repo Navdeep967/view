@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Grid - Session {{ session_id }}</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: white;
+            font-family: Arial, sans-serif;
+            overflow-x: hidden;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: #2d2d2d;
+            border-radius: 8px;
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            padding: 8px 15px;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-left: 10px;
+        }
+        .btn-danger {
+            background: #dc3545;
+        }
+        .status {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 8px;
+            justify-items: center;
+        }
+        .video-container {
+            position: relative;
+            width: 240px;
+            height: 135px;
+            background: #000;
+            border-radius: 4px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            border: 1px solid #333;
+        }
+        .video-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .proxy-overlay {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: rgba(0, 255, 0, 0.9);
+            color: #000;
+            padding: 1px 4px;
+            border-radius: 2px;
+            font-size: 8px;
+            font-weight: bold;
+            z-index: 10;
+            line-height: 1;
+        }
+        .timing-overlay {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #000;
+            padding: 1px 4px;
+            border-radius: 2px;
+            font-size: 8px;
+            font-weight: bold;
+            z-index: 10;
+            line-height: 1;
+        }
+        .frame-info {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            background: rgba(0, 123, 255, 0.9);
+            color: white;
+            padding: 1px 4px;
+            border-radius: 2px;
+            font-size: 8px;
+            font-weight: bold;
+            z-index: 10;
+            line-height: 1;
+        }
+        .proxy-type {
+            position: absolute;
+            bottom: 2px;
+            left: 2px;
+            padding: 1px 4px;
+            border-radius: 2px;
+            font-size: 8px;
+            font-weight: bold;
+            z-index: 10;
+            line-height: 1;
+        }
+        .http { background: rgba(40, 167, 69, 0.9); color: white; }
+        .socks4 { background: rgba(255, 193, 7, 0.9); color: black; }
+        .socks5 { background: rgba(0, 123, 255, 0.9); color: white; }
+        .direct { background: rgba(108, 117, 125, 0.9); color: white; }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        #live-viewers {
+            text-shadow: 0 0 10px currentColor;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h2>🎬 Video Grid Session #{{ session_id }}</h2>
+            <span class="status" id="session-status">● Active Session</span>
+            <div style="font-size: 12px; color: #28a745; margin-top: 5px;">
+                ✅ Background Mode Active - Videos run continuously on server (24/7)
+            </div>
+            <div style="font-size: 10px; color: #6c757d; margin-top: 2px;">
+                Process ID: <span id="process-id">Loading...</span> | 
+                Total Active Processes: <span id="total-processes">Loading...</span>
+            </div>
+            <div style="font-size: 10px; color: #17a2b8; margin-top: 2px;">
+                🔄 Auto-restart enabled - Videos will continue even if processes fail
+            </div>
+             <div style="font-size: 10px; color: #17a2b8; margin-top: 2px;">
+                <span id="proxy-info"></span>
+            </div>
+            <div style="font-size: 10px; color: #17a2b8; margin-top: 2px;">
+                <span id="multi-proxy-info"></span>
+            </div>
+            <div style="font-size: 12px; color: #dc3545; margin-top: 5px; font-weight: bold;">
+                🔴 LIVE: <span id="live-viewers">Loading...</span> viewers watching
+            </div>
+            <div style="font-size: 10px; color: #28a745; margin-top: 2px;">
+                📈 Peak: <span id="peak-viewers">-</span> | 
+                ⏱️ Duration: <span id="session-duration">-</span> | 
+                📊 Growth: <span id="growth-rate">-</span>
+            </div>
+            <div style="font-size: 9px; color: #6c757d; margin-top: 2px; max-height: 60px; overflow-y: auto;" id="frame-proxy-details">
+            </div>
+        </div>
+        <div>
+            <a href="{{ url_for('dashboard') }}" class="btn">← Dashboard</a>
+            <a href="{{ url_for('stop_session', session_id=session_id) }}" class="btn btn-danger">Stop Session</a>
+        </div>
+    </div>
+
+    <div class="video-grid" id="video-grid">
+        {% for i in range(video_count) %}
+        <div class="video-container" id="container-{{ i }}">
+            <div class="frame-info">F{{ i }}</div>
+            <div class="proxy-overlay" id="proxy-{{ i }}">Loading...</div>
+            <div class="timing-overlay" id="timing-{{ i }}">0.00s</div>
+            <div class="proxy-type" id="type-{{ i }}">Loading...</div>
+            <iframe 
+                id="frame-{{ i }}"
+                src="about:blank"
+                allowfullscreen
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                allow="autoplay; encrypted-media; fullscreen">
+            </iframe>
+        </div>
+        {% endfor %}
+    </div>
+
+    <script>
+        let frameProxies = [];
+        let viewTimers = [];
+        let engagementData = [];
+
+        // Initialize frames with different proxies and user agents
+        async function initializeFrames() {
+            const frames = document.querySelectorAll('iframe');
+
+            for (let i = 0; i < frames.length; i++) {
+                try {
+                    // Get unique proxy for this frame
+                    const response = await fetch(`/api/proxy_request/{{ session_id }}/${i}`);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    
+                    const proxyData = await response.json();
+                    frameProxies[i] = proxyData;
+
+                    // Update proxy overlay with abbreviated proxy info
+                    const proxyOverlay = document.getElementById(`proxy-${i}`);
+                    const typeOverlay = document.getElementById(`type-${i}`);
+                    
+                    if (proxyData.error) {
+                        proxyOverlay.textContent = '❌ NO PROXY';
+                        proxyOverlay.style.backgroundColor = 'rgba(220, 53, 69, 0.9)';
+                        typeOverlay.textContent = 'DIRECT';
+                        typeOverlay.className = 'proxy-type direct';
+                    } else if (proxyData.abbreviated_string) {
+                        proxyOverlay.textContent = `✅ ${proxyData.abbreviated_string}`;
+                        proxyOverlay.style.backgroundColor = 'rgba(40, 167, 69, 0.9)';
+                        typeOverlay.textContent = proxyData.proxy_type || 'HTTP';
+                        typeOverlay.className = `proxy-type ${proxyData.proxy_type?.toLowerCase() || 'http'}`;
+                    } else {
+                        proxyOverlay.textContent = '⚠️ DIRECT';
+                        proxyOverlay.style.backgroundColor = 'rgba(255, 193, 7, 0.9)';
+                        typeOverlay.textContent = 'DIRECT';
+                        typeOverlay.className = 'proxy-type direct';
+                    }
+
+                    // Create optimized embed URL for view counting
+                    const embedUrl = createOptimizedEmbedUrl(i, proxyData);
+
+                    // Load iframe with delay to simulate natural browsing
+                    setTimeout(() => {
+                        frames[i].src = embedUrl;
+                        initializeFrameInteractions(i);
+                        // Start advanced view generation
+                        setTimeout(() => {
+                            startAdvancedViewGeneration(i);
+                        }, 5000 + Math.random() * 5000);
+                    }, i * 500 + Math.random() * 2000);
+
+                } catch (error) {
+                    console.error(`Error initializing frame ${i}:`, error);
+                    
+                    // Update display for error state
+                    document.getElementById(`proxy-${i}`).textContent = '❌ ERROR';
+                    document.getElementById(`proxy-${i}`).style.backgroundColor = 'rgba(220, 53, 69, 0.9)';
+                    document.getElementById(`type-${i}`).textContent = 'ERROR';
+                    document.getElementById(`type-${i}`).className = 'proxy-type direct';
+                    
+                    // Fallback to direct connection
+                    const embedUrl = createOptimizedEmbedUrl(i, null);
+                    setTimeout(() => {
+                        frames[i].src = embedUrl;
+                        initializeFrameInteractions(i);
+                    }, i * 500);
+                }
+            }
+        }
+
+        function createOptimizedEmbedUrl(frameIndex, proxyData) {
+            // Use our proxy routing system for each frame
+            const proxyBaseUrl = `/proxy_youtube/{{ session_id }}/${frameIndex}/{{ video_id }}`;
+            const params = new URLSearchParams({
+                // Essential for view counting
+                autoplay: '1',
+                mute: '1',  // Start muted to avoid autoplay blocks
+                start: Math.floor(Math.random() * 5), // Random start time (0-5 seconds)
+
+                // Quality settings optimized for view counting
+                vq: 'tiny',        // 144p quality for faster loading
+                quality: 'tiny',
+                hd: '0',
+
+                // Engagement settings for authentic behavior
+                controls: '1',     // Show controls
+                rel: '0',          // No related videos
+                showinfo: '0',     // Hide video info for cleaner look
+                iv_load_policy: '3', // Hide annotations
+                modestbranding: '1', // Hide YouTube logo
+
+                // API settings for interaction
+                enablejsapi: '1',
+                origin: window.location.origin,
+
+                // Unique session identifiers
+                t: Date.now() + frameIndex,
+                hash: btoa(frameIndex + '_' + Date.now() + '_' + (proxyData?.session_token || 'direct')).substring(0, 12),
+
+                // Additional parameters for view validation
+                loop: '1',
+                playlist: '{{ video_id }}', // Required for loop to work
+
+                // Simulate different viewer sessions
+                cc_load_policy: frameIndex % 2, // Toggle captions
+                hl: ['en', 'es', 'fr', 'de', 'it'][frameIndex % 5], // Different languages
+                gl: ['US', 'CA', 'GB', 'AU', 'DE'][frameIndex % 5]  // Different regions
+            });
+
+            return `${proxyBaseUrl}?${params.toString()}`;
+        }
+
+        function initializeFrameInteractions(frameIndex) {
+            engagementData[frameIndex] = {
+                clicks: 0,
+                hovers: 0,
+                watchTime: 0,
+                startTime: Date.now(),
+                proxyVerified: false,
+                viewsGenerated: 0
+            };
+
+            // Start watch time tracking
+            viewTimers[frameIndex] = setInterval(() => {
+                engagementData[frameIndex].watchTime += 1;
+            }, 1000);
+
+            // Verify proxy is being used
+            const frame = document.getElementById(`frame-${frameIndex}`);
+            if (frame) {
+                frame.onload = function() {
+                    // Check if proxy headers are present
+                    try {
+                        const proxyUsed = frame.contentWindow?.document?.querySelector('meta[name="proxy-used"]')?.content;
+                        if (proxyUsed && proxyUsed !== 'DIRECT-ERROR') {
+                            engagementData[frameIndex].proxyVerified = true;
+                            document.getElementById(`proxy-${frameIndex}`).style.color = '#28a745';
+                            document.getElementById(`proxy-${frameIndex}`).textContent = `✅ ${proxyUsed}`;
+                        }
+                    } catch(e) {
+                        // Cross-origin restrictions, but that's expected
+                        engagementData[frameIndex].proxyVerified = true;
+                    }
+                };
+
+                // Simulate user engagement for view generation
+                setInterval(() => {
+                    if (frame.contentWindow) {
+                        try {
+                            // Simulate video interactions to generate views
+                            const events = ['click', 'mouseover', 'focus'];
+                            const randomEvent = events[Math.floor(Math.random() * events.length)];
+
+                            // Create and dispatch events in the iframe
+                            const event = new Event(randomEvent, { bubbles: true });
+                            frame.contentWindow.document.dispatchEvent(event);
+
+                            engagementData[frameIndex].viewsGenerated++;
+                        } catch(e) {
+                            // Expected due to cross-origin restrictions
+                        }
+                    }
+                }, 10000 + Math.random() * 20000); // Random intervals 10-30 seconds
+            }
+
+            // Add interaction tracking
+            const container = document.getElementById(`container-${frameIndex}`);
+            if (container) {
+                container.addEventListener('mouseenter', () => {
+                    engagementData[frameIndex].hovers++;
+                });
+
+                container.addEventListener('click', () => {
+                    engagementData[frameIndex].clicks++;
+                });
+            }
+        }
+
+        function startAdvancedViewGeneration(frameIndex) {
+            const iframe = document.getElementById(`frame-${frameIndex}`);
+
+            // Phase 1: Initial engagement (0-30 seconds)
+            setTimeout(() => {
+                // Unmute and start playback
+                iframe.contentWindow.postMessage('{"event":"command","func":"unMute","args":""}', '*');
+                iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+
+                // Update timing display
+                startTimingCounter(frameIndex);
+
+            }, Math.random() * 5000);
+
+            // Phase 2: Engagement simulation (30 seconds - 2 minutes)
+            setTimeout(() => {
+                simulateUserEngagement(frameIndex);
+            }, 30000 + Math.random() * 30000);
+
+            // Phase 3: View completion and restart (2-5 minutes)
+            setTimeout(() => {
+                completeViewCycle(frameIndex);
+            }, 120000 + Math.random() * 180000);
+        }
+
+        function simulateUserEngagement(frameIndex) {
+            const iframe = document.getElementById(`frame-${frameIndex}`);
+            const actions = [
+                () => {
+                    // Random seek to show engagement
+                    const randomTime = Math.floor(Math.random() * 60);
+                    iframe.contentWindow.postMessage(`{"event":"command","func":"seekTo","args":"[${randomTime}, true]"}`, '*');
+                },
+                () => {
+                    // Pause and play to simulate user control
+                    iframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+                    setTimeout(() => {
+                        iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+                    }, 2000 + Math.random() * 8000);
+                },
+                () => {
+                    // Volume adjustment
+                    const volume = Math.floor(Math.random() * 50) + 25;
+                    iframe.contentWindow.postMessage(`{"event":"command","func":"setVolume","args":"[${volume}]"}`, '*');
+                },
+                () => {
+                    // Quality change simulation
+                    iframe.contentWindow.postMessage('{"event":"command","func":"setPlaybackQuality","args":"[\"tiny\"]"}', '*');
+                }
+            ];
+
+            // Execute random actions with intervals
+            const actionInterval = setInterval(() => {
+                if (Math.random() < 0.3) { // 30% chance to perform action
+                    const randomAction = actions[Math.floor(Math.random() * actions.length)];
+                    randomAction();
+                }
+            }, 10000 + Math.random() * 20000);
+
+            // Store interval for cleanup
+            if (!engagementData[frameIndex]) engagementData[frameIndex] = {};
+            engagementData[frameIndex].actionInterval = actionInterval;
+        }
+
+        function completeViewCycle(frameIndex) {
+            // Clear existing intervals
+            if (engagementData[frameIndex]?.actionInterval) {
+                clearInterval(engagementData[frameIndex].actionInterval);
+            }
+            if (viewTimers[frameIndex]) {
+                clearInterval(viewTimers[frameIndex]);
+            }
+
+            // Generate new view with fresh parameters
+            setTimeout(() => {
+                const iframe = document.getElementById(`frame-${frameIndex}`);
+                const newUrl = createOptimizedEmbedUrl(frameIndex, frameProxies[frameIndex]);
+                iframe.src = newUrl;
+
+                // Restart the cycle
+                setTimeout(() => {
+                    startAdvancedViewGeneration(frameIndex);
+                }, 3000);
+
+            }, 5000 + Math.random() * 10000);
+        }
+
+        function startTimingCounter(frameIndex) {
+            let seconds = 0;
+            viewTimers[frameIndex] = setInterval(() => {
+                seconds++;
+                const minutes = Math.floor(seconds / 60);
+                const remainingSeconds = seconds % 60;
+                document.getElementById(`timing-${frameIndex}`).textContent = 
+                    `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        // Initialize when page loads
+        window.addEventListener('load', () => {
+            setTimeout(initializeFrames, 1000);
+        });
+
+        // Memory optimization: Clean up resources periodically
+        setInterval(() => {
+            // Force garbage collection hints
+            if (window.gc) window.gc();
+
+            // Clear old engagement data
+            Object.keys(engagementData).forEach(key => {
+                if (engagementData[key] && Object.keys(engagementData[key]).length > 10) {
+                    engagementData[key] = {};
+                }
+            });
+        }, 300000); // Every 5 minutes
+
+        // Update live viewer count
+        function updateLiveViewers() {
+            fetch(`/api/live_viewers/{{ session_id }}`)
+                .then(response => response.json())
+                .then(data => {
+                    const liveViewersElement = document.getElementById('live-viewers');
+
+                    if (data.live_viewers) {
+                        // Add animated effect for viewer count changes
+                        const currentCount = parseInt(liveViewersElement.textContent) || 0;
+                        const newCount = data.live_viewers;
+
+                        if (newCount !== currentCount) {
+                            liveViewersElement.style.animation = 'pulse 0.5s ease-in-out';
+                            setTimeout(() => {
+                                liveViewersElement.style.animation = '';
+                            }, 500);
+                        }
+
+                        liveViewersElement.textContent = newCount.toLocaleString();
+                        liveViewersElement.style.color = data.status === 'active' ? '#dc3545' : '#ffc107';
+                    } else {
+                        liveViewersElement.textContent = '0';
+                        liveViewersElement.style.color = '#6c757d';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating live viewers:', error);
+                    document.getElementById('live-viewers').textContent = 'Error';
+                });
+        }
+
+        // Update viewer analytics
+        function updateViewerAnalytics() {
+            fetch(`/api/viewer_analytics/{{ session_id }}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.peak_viewers) {
+                        document.getElementById('peak-viewers').textContent = data.peak_viewers.toLocaleString();
+                        document.getElementById('session-duration').textContent = `${data.session_duration_minutes}m`;
+                        document.getElementById('growth-rate').textContent = data.growth_rate;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating analytics:', error);
+                });
+        }
+
+        // Check session status every 30 seconds
+        function checkSessionStatus() {
+            fetch(`/api/session_status/{{ session_id }}`)
+                .then(response => response.json())
+                .then(data => {
+                    const statusElement = document.getElementById('session-status');
+                    const processIdElement = document.getElementById('process-id');
+                    const totalProcessesElement = document.getElementById('total-processes');
+                    const proxyInfoElement = document.getElementById('proxy-info');
+
+                    if (data.active) {
+                        statusElement.textContent = data.background_running ? '● Active (Background Running)' : '● Active (Starting...)';
+                        statusElement.style.color = data.background_running ? '#28a745' : '#ffc107';
+                    } else {
+                        statusElement.textContent = '● Inactive';
+                        statusElement.style.color = '#dc3545';
+                    }
+
+                    processIdElement.textContent = data.process_id || 'None';
+                    totalProcessesElement.textContent = data.total_active_processes || 0;
+
+                    // Update proxy information with abbreviated display
+                    if (data.proxy_info) {
+                        const fastBadge = data.proxy_info.is_fast ? '⚡' : '🐌';
+                        proxyInfoElement.innerHTML = 
+                            `🔗 Proxy: ${data.proxy_info.abbreviated_string} | ` +
+                            `${fastBadge} ${data.proxy_info.response_time.toFixed(2)}s | ` +
+                            `📊 ${data.proxy_info.success_rate.toFixed(1)}%`;
+                    } else {
+                        proxyInfoElement.innerHTML = '🔗 No proxy configured';
+                    }
+
+                    if (data.multi_proxy_info) {
+                        document.getElementById('multi-proxy-info').innerHTML = 
+                            `🌐 Multi-Proxy Mode: ${data.multi_proxy_info.proxy_count} fast proxies | ` +
+                            `📺 Frames: ${data.multi_proxy_info.frame_processes}`;
+
+                        // Update frame proxy details
+                        const frameDetailsElement = document.getElementById('frame-proxy-details');
+                        if (data.multi_proxy_info.frame_details) {
+                            let frameDetailsHtml = '<strong>Frame Proxies:</strong><br>';
+                            data.multi_proxy_info.frame_details.forEach(frame => {
+                                const speedIcon = frame.is_fast ? '⚡' : '🐌';
+                                const typeColor = frame.proxy_type === 'HTTP' ? '#28a745' : 
+                                                frame.proxy_type === 'SOCKS5' ? '#007bff' : '#ffc107';
+                                frameDetailsHtml += 
+                                    `F${frame.frame_index}: <span style="color:${typeColor}">${frame.abbreviated_string}</span> ` +
+                                    `${speedIcon}${frame.response_time.toFixed(2)}s<br>`;
+                            });
+                            frameDetailsElement.innerHTML = frameDetailsHtml;
+                        }
+                    } else {
+                        document.getElementById('multi-proxy-info').innerHTML = '';
+                        document.getElementById('frame-proxy-details').innerHTML = '';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking session status:', error);
+                    document.getElementById('session-status').textContent = '● Status Unknown';
+                    document.getElementById('session-status').style.color = '#6c757d';
+                    document.getElementById('proxy-info').textContent = '🔗 Proxy status unknown';
+                });
+        }
+
+        // Update live viewers every 3 seconds for real-time feel
+        setInterval(updateLiveViewers, 3000);
+
+        // Update analytics every 30 seconds
+        setInterval(updateViewerAnalytics, 30000);
+
+        // Check status every 30 seconds
+        setInterval(checkSessionStatus, 30000);
+
+        // Initial checks
+        updateLiveViewers();
+        updateViewerAnalytics();
+        checkSessionStatus();
+
+        // Keep session alive by sending periodic requests
+        setInterval(function() {
+            fetch('/api/session_status/{{ session_id }}');
+        }, 300000); // Every 5 minutes
+    </script>
+</body>
+</html>

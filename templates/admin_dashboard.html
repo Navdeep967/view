@@ -1,0 +1,158 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Dashboard - YouTube Video Grid</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .btn {
+            background-color: #28a745;
+            color: white;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 2px;
+            font-size: 14px;
+        }
+        .btn:hover {
+            background-color: #218838;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+        }
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+        .btn-warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        .btn-warning:hover {
+            background-color: #e0a800;
+        }
+        .request-item, .user-item, .session-item {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .admin-badge {
+            background-color: #007bff;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        .approved-badge {
+            background-color: #28a745;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        .pending-badge {
+            background-color: #ffc107;
+            color: #212529;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🛠️ Admin Dashboard</h1>
+        <div>
+            <a href="{{ url_for('all_sessions') }}" class="btn">View All Sessions</a>
+            <a href="{{ url_for('dashboard') }}" class="btn">Back to Dashboard</a>
+            <a href="{{ url_for('logout') }}" class="btn btn-danger">Logout</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>📋 Pending Access Requests ({{ pending_requests|length }})</h2>
+        {% if pending_requests %}
+        {% for request in pending_requests %}
+        <div class="request-item">
+            <h4>{{ request.user.username }} <span class="pending-badge">PENDING</span></h4>
+            <p><strong>Requested:</strong> {{ request.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+            {% if request.message %}
+            <p><strong>Message:</strong> {{ request.message }}</p>
+            {% endif %}
+            <a href="{{ url_for('approve_user', request_id=request.id) }}" class="btn">Approve</a>
+            <a href="{{ url_for('deny_user', request_id=request.id) }}" class="btn btn-danger">Deny</a>
+        </div>
+        {% endfor %}
+        {% else %}
+        <p>No pending access requests.</p>
+        {% endif %}
+    </div>
+
+    <div class="container">
+        <h2>👥 All Users ({{ users|length }})</h2>
+        {% for user in users %}
+        <div class="user-item">
+            <h4>{{ user.username }} 
+                {% if user.is_admin %}<span class="admin-badge">ADMIN</span>{% endif %}
+                {% if user.is_approved %}<span class="approved-badge">APPROVED</span>{% endif %}
+            </h4>
+            <p><strong>Sessions:</strong> {{ user.video_sessions|length }} ({{ user.video_sessions|selectattr('is_active')|list|length }} active)</p>
+            {% if user.limits %}
+            <p><strong>Limits:</strong> {{ user.limits.max_sessions }} sessions, {{ user.limits.max_grids }} grid size</p>
+            {% endif %}
+            {% if not user.is_admin or user.id != current_user.id %}
+            <a href="{{ url_for('toggle_user_status', user_id=user.id) }}" class="btn btn-warning">
+                {% if user.is_approved %}Disable{% else %}Enable{% endif %}
+            </a>
+            {% endif %}
+            <a href="{{ url_for('manage_user_limits', user_id=user.id) }}" class="btn">Edit Limits</a>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="container">
+        <h2>🎬 Active Sessions ({{ active_sessions|length }})</h2>
+        {% if active_sessions %}
+        {% for session in active_sessions %}
+        <div class="session-item">
+            <h4>Session #{{ session.id }} - {{ session.user.username }}</h4>
+            <p><strong>Video URL:</strong> {{ session.video_url }}</p>
+            <p><strong>Grid Size:</strong> {{ session.video_count }} videos</p>
+            <p><strong>Started:</strong> {{ session.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+            <a href="{{ url_for('view_session', session_id=session.id) }}" class="btn">View Session</a>
+            <a href="{{ url_for('stop_session', session_id=session.id) }}" class="btn btn-danger">Stop Session</a>
+        </div>
+        {% endfor %}
+        {% else %}
+        <p>No active sessions.</p>
+        {% endif %}
+    </div>
+</body>
+</html>

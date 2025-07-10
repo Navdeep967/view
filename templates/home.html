@@ -1,0 +1,65 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>YouTube Video Grid - Home</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .btn {
+            background-color: #ff0000;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 10px;
+            font-size: 16px;
+        }
+        .btn:hover {
+            background-color: #cc0000;
+        }
+        .btn-secondary {
+            background-color: #666;
+        }
+        .btn-secondary:hover {
+            background-color: #444;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 YouTube Video Grid Player</h1>
+        <p>Create synchronized video grids with 24/7 background processing!</p>
+        
+        <div>
+            <a href="{{ url_for('login') }}" class="btn">Login</a>
+            <a href="{{ url_for('register') }}" class="btn btn-secondary">Register</a>
+        </div>
+        
+        <hr>
+        <h3>Features:</h3>
+        <ul style="text-align: left; max-width: 400px; margin: 0 auto;">
+            <li>🔐 Secure user authentication</li>
+            <li>👨‍💼 Admin approval system</li>
+            <li>🔄 24/7 background processing</li>
+            <li>📺 Multiple video grid layouts</li>
+            <li>⏰ Persistent sessions</li>
+        </ul>
+    </div>
+</body>
+</html>

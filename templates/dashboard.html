@@ -1,0 +1,137 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard - YouTube Video Grid</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .btn {
+            background-color: #ff0000;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 5px;
+        }
+        .btn:hover {
+            background-color: #cc0000;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+        }
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+        .session-item {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .active {
+            border-left: 4px solid #28a745;
+        }
+        .inactive {
+            border-left: 4px solid #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📺 Dashboard - Welcome {{ current_user.username }}!</h1>
+        <div>
+            {% if current_user.is_admin %}
+            <a href="{{ url_for('admin_dashboard') }}" class="btn">Admin Panel</a>
+            {% endif %}
+            <a href="{{ url_for('logout') }}" class="btn btn-danger">Logout</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>🎬 Your Video Sessions</h2>
+        <a href="{{ url_for('video_grid') }}" class="btn">Create New Video Grid</a>
+        <a href="{{ url_for('all_sessions') }}" class="btn btn-secondary">View All Sessions</a>
+        
+        {% if sessions %}
+        {% for session in sessions %}
+        <div class="session-item {% if session.is_active %}active{% else %}inactive{% endif %}">
+            <h4>Session #{{ session.id }} 
+                {% if session.is_active %}
+                <span style="color: green;">● Active</span>
+                {% else %}
+                <span style="color: red;">● Stopped</span>
+                {% endif %}
+            </h4>
+            <p><strong>Video URL:</strong> {{ session.video_url }}</p>
+            <p><strong>Grid Size:</strong> {{ session.video_count }} videos</p>
+            <p><strong>Loop Duration:</strong> {{ session.loop_duration }} seconds</p>
+            <p><strong>Created:</strong> {{ session.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+            
+            {% if session.is_active %}
+            <div style="margin: 10px 0; padding: 8px; background: #f8f9fa; border-radius: 4px;">
+                <span style="color: #dc3545; font-weight: bold;">🔴 LIVE:</span>
+                <span id="dashboard-viewers-{{ session.id }}" style="font-weight: bold;">Loading...</span> viewers
+            </div>
+            <a href="{{ url_for('view_session', session_id=session.id) }}" class="btn">View Session</a>
+            <a href="{{ url_for('stop_session', session_id=session.id) }}" class="btn btn-danger">Stop Session</a>
+            {% endif %}
+        </div>
+        {% endfor %}
+        {% else %}
+        <p>No video sessions yet. <a href="{{ url_for('video_grid') }}">Create your first one!</a></p>
+        {% endif %}
+    </div>
+<script>
+        // Update live viewer counts for active sessions
+        function updateDashboardViewers() {
+            {% for session in sessions %}
+            {% if session.is_active %}
+            fetch(`/api/live_viewers/{{ session.id }}`)
+                .then(response => response.json())
+                .then(data => {
+                    const element = document.getElementById('dashboard-viewers-{{ session.id }}');
+                    if (element && data.live_viewers) {
+                        element.textContent = data.live_viewers.toLocaleString();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating dashboard viewers for session {{ session.id }}:', error);
+                });
+            {% endif %}
+            {% endfor %}
+        }
+
+        // Update every 5 seconds
+        setInterval(updateDashboardViewers, 5000);
+        
+        // Initial update
+        window.addEventListener('load', updateDashboardViewers);
+    </script>
+</body>
+</html>

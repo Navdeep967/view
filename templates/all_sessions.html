@@ -1,0 +1,144 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>All Sessions - YouTube Video Grid</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .btn {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 5px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+        }
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+        .session-item {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .session-item.active {
+            border-left: 5px solid #28a745;
+        }
+        .session-item.inactive {
+            border-left: 5px solid #dc3545;
+            opacity: 0.7;
+        }
+        .status-active {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .status-inactive {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .user-badge {
+            background-color: #6c757d;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        .grid-info {
+            display: inline-block;
+            background-color: #e9ecef;
+            padding: 4px 8px;
+            border-radius: 3px;
+            margin: 2px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📺 {% if current_user.is_admin %}All Sessions{% else %}Your Sessions{% endif %}</h1>
+        <div>
+            <a href="{{ url_for('dashboard') }}" class="btn">← Dashboard</a>
+            {% if current_user.is_admin %}
+            <a href="{{ url_for('admin_dashboard') }}" class="btn">Admin Panel</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>Session History ({{ sessions|length }} total)</h2>
+        
+        {% if sessions %}
+        {% for session in sessions %}
+        <div class="session-item {% if session.is_active %}active{% else %}inactive{% endif %}">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h4>Session #{{ session.id }}
+                        {% if current_user.is_admin %}
+                        <span class="user-badge">{{ session.user.username }}</span>
+                        {% endif %}
+                        {% if session.is_active %}
+                        <span class="status-active">● Active</span>
+                        {% else %}
+                        <span class="status-inactive">● Stopped</span>
+                        {% endif %}
+                    </h4>
+                    
+                    <p><strong>Video URL:</strong> {{ session.video_url }}</p>
+                    
+                    <div>
+                        <span class="grid-info">📺 {{ session.video_count }} videos</span>
+                        <span class="grid-info">⏱️ {{ session.loop_duration }}s loop</span>
+                        <span class="grid-info">📅 {{ session.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</span>
+                    </div>
+                </div>
+                
+                <div>
+                    {% if session.is_active %}
+                    {% if session.user_id == current_user.id or current_user.is_admin %}
+                    <a href="{{ url_for('view_session', session_id=session.id) }}" class="btn">View</a>
+                    <a href="{{ url_for('stop_session', session_id=session.id) }}" class="btn btn-danger">Stop</a>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <p>No sessions found. <a href="{{ url_for('video_grid') }}">Create your first session!</a></p>
+        {% endif %}
+    </div>
+</body>
+</html>
