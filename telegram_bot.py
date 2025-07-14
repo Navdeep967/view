@@ -19,8 +19,8 @@ import logging
 from datetime import datetime
 
 # Initialize bot - Replace with your actual values
-BOT_TOKEN = '8023553474:AAG-VTLmG6Itdmay5sEG-VnaaOPfg14FFfA'  # Replace with your bot token
-ADMIN_CHAT_ID = '6294868615'  # Replace with your chat ID
+BOT_TOKEN = 'YOUR BOT TOKEN'  # Replace with your bot token
+ADMIN_CHAT_ID = 'YOUR USER ID'  # Replace with your chat ID
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
