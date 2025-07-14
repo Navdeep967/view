@@ -27,24 +27,7 @@ cd view-main
 
 ```bash
 pip install -r requirements.txt
-```
-
-### 3. ✏️ Required Configuration
-
-#### 🔐 `main.py`
-
-Open `main.py` and set your Flask secret key:
-
-```python
-app.config['SECRET_KEY'] = 'your-secret-key-change-this'
-```
-
-You can also change the SQLite DB location if needed:
-
-```python
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///video_grid.db'
-```
-
+``
 #### 🤖 `telegram_bot.py`
 
 Open `telegram_bot.py` and configure:
